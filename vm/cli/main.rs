@@ -14,17 +14,38 @@
 // You should have received a copy of the GNU General Public License
 // along with the snarkVM library. If not, see <https://www.gnu.org/licenses/>.
 
-use snarkvm::cli::{Updater, CLI};
-
-use clap::Parser;
+use snarkvm_circuit::FromStr;
+use snarkvm_compiler::Program;
+use snarkvm_utilities::{FromBytes, ToBytes};
 
 fn main() -> anyhow::Result<()> {
-    // Parse the given arguments.
-    let cli = CLI::parse();
-    // Run the updater.
-    println!("{}", Updater::print_cli());
-    // Run the CLI.
-    println!("{}", cli.command.start()?);
+    use snarkvm_console::network::Testnet3;
+
+    type CurrentNetwork = Testnet3;
+    let program_string = r"program test.aleo;
+
+    function hello:
+        input r0 as u16.public;
+        input r1 as u16.private;
+        input r2 as u32.private;
+        input r3 as u32.private;
+        xor r0 r1 into r4;
+        add r3 r2 into r5;
+        output r4 as u16.private;
+        output r5 as u32.private;    
+    ";
+    // Parse a new program.
+    let expected = Program::<CurrentNetwork>::from_str(program_string)?;
+
+    // Serialize
+    let expected_bytes = expected.to_bytes_le()?;
+    //let expected_bytes_with_size_encoding = bincode::serialize(&expected)?;
+    //assert_eq!(&expected_bytes[..], &expected_bytes_with_size_encoding[8..]);
+
+    // Deserialize
+    println!("TEST PARSE");
+    assert_eq!(expected, Program::read_le(&expected_bytes[..])?);
+    //assert_eq!(expected, bincode::deserialize(&expected_bytes_with_size_encoding[..])?);
 
     Ok(())
 }
